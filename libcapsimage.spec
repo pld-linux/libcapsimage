@@ -1,22 +1,19 @@
 Summary:	IPF image support library
 Summary(pl.UTF-8):	Biblioteka obsługująca obrazy IPF
 Name:		libcapsimage
-Version:	4.2
+Version:	5.1
 Release:	1
 License:	Software Preservation Society (only limited, non-commercial distribution is allowed)
 Group:		Libraries
-# http://www.softpres.org/_media/files:ipflib42_linux-i686.tar.gz?id=download
-Source0:	ipflib42_linux-i686.tar.gz
-# Source0-md5:	420ae4e6112abf8654a36dc90fa671b8
-# http://www.softpres.org/_media/files:ipflib42_linux-x86_64.tar.gz?id=download
-Source1:	ipflib42_linux-x86_64.tar.gz
-# Source1-md5:	a0868374efa8ed88ec32e82b133b70b6
-# http://www.softpres.org/_media/files:ipflib42_linux-powerpc.tar.gz?id=download
-Source2:	ipflib42_linux-powerpc.tar.gz
-# Source2-md5:	eddd4b47262b38169314939abe2045fc
+#Source0Download: https://github.com/simonowen/capsimage
+Source0:	https://www.kryoflux.com/download/spsdeclib_%{version}_source.zip
+# Source0-md5:	27710eb05d4391560addeeb970ea1d45
+#Source1Download: http://www.softpres.org/download
+Source1:	http://www.softpres.org/_media/files:ipfaccessapi_multi.tgz?id=download&cache=cache&fakefile=/ipfaccessapi_multi.tgz
+# Source1-md5:	f33c2ac4273871c1c59d375958e525a3
 URL:		http://www.softpres.org/?id=download
 BuildRequires:	libstdc++-devel
-ExclusiveArch:	%{ix86} %{x8664} ppc
+BuildRequires:	unzip
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %description
@@ -45,33 +42,34 @@ Header files for CAPS image library.
 Pliki nagłówkowe biblioteki CAPS image.
 
 %prep
-%setup -q -c -T
-%ifarch %{ix86}
-%{__tar} xz --strip-components=1 -f %{SOURCE0}
-%endif
-%ifarch %{x8664}
-%{__tar} xz --strip-components=1 -f %{SOURCE1}
-%endif
-%ifarch ppc
-%{__tar} xz --strip-components=1 -f %{SOURCE2}
-%endif
+%setup -q -c -a1
 
-ln -s libcapsimage.so.*.* libcapsimage.so
-%{__rm} examples/ipfinfo
+unzip -q capsimg_source_linux_macosx.zip
+chmod 755 capsimg_source_linux_macosx/CAPSImg/configure
 
 %build
-cd examples
-%{__cc} %{rpmldflags} %{rpmcflags} %{rpmcppflags} -o ipfinfo ipfinfo.c -I../include -L.. -lcapsimage
+cd capsimg_source_linux_macosx/CAPSImg
+%configure
+
+%{__make}
+
+ln -s libcapsimage.so.*.* libcapsimage.so
+
+cd ../../ipfaccessapi_multi/examples
+%{__cc} %{rpmldflags} %{rpmcflags} %{rpmcppflags} -o ipfinfo ipfinfo.c -I../include -L../../capsimg_source_linux_macosx/CAPSImg -lcapsimage
 
 %install
 rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT{%{_bindir},%{_libdir},%{_includedir}/caps}
+install -d $RPM_BUILD_ROOT{%{_bindir},%{_includedir}/caps}
 
-install examples/ipfinfo $RPM_BUILD_ROOT%{_bindir}
-install libcapsimage.so.*.* $RPM_BUILD_ROOT%{_libdir}
-ln -s libcapsimage.so.*.* $RPM_BUILD_ROOT%{_libdir}/libcapsimage.so.4
-ln -s libcapsimage.so.*.* $RPM_BUILD_ROOT%{_libdir}/libcapsimage.so
-cp -p include/caps/*.h $RPM_BUILD_ROOT%{_includedir}/caps
+%{__make} -C capsimg_source_linux_macosx/CAPSImg install \
+	DESTDIR=$RPM_BUILD_ROOT
+
+install ipfaccessapi_multi/examples/ipfinfo $RPM_BUILD_ROOT%{_bindir}
+ln -s $(basename $RPM_BUILD_ROOT%{_libdir}/libcapsimage.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libcapsimage.so.5
+ln -s $(basename $RPM_BUILD_ROOT%{_libdir}/libcapsimage.so.*.*) $RPM_BUILD_ROOT%{_libdir}/libcapsimage.so
+cp -p capsimg_source_linux_macosx/{LibIPF/*.h,Core/CommonTypes.h} $RPM_BUILD_ROOT%{_includedir}/caps
+cp -p ipfaccessapi_multi/include/caps/capsimage.h $RPM_BUILD_ROOT%{_includedir}/caps
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -81,10 +79,10 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(644,root,root,755)
-%doc HISTORY LICENSE README
+%doc DONATIONS.txt HISTORY.txt LICENCE.txt RELEASE.txt
 %attr(755,root,root) %{_bindir}/ipfinfo
 %attr(755,root,root) %{_libdir}/libcapsimage.so.*.*
-%attr(755,root,root) %ghost %{_libdir}/libcapsimage.so.4
+%attr(755,root,root) %ghost %{_libdir}/libcapsimage.so.5
 
 %files devel
 %defattr(644,root,root,755)
